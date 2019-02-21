@@ -14,15 +14,25 @@
       padding: 5px 16px;
       border-radius: 4px;
     }
-    button#changeQuota { background-color: yellow; }
-    button#buyTicket { background-color: #98fb98; }
-    button#refundTicket { background-color: pink; }
-    button#createWallet { background-color: #add8e6; }
+    button#checkPerson { background-color: pink; }
+    button#showSmartContract { background-color: #98fb98; }
+    #smartContractCode {display: none;}
     #seed {color: green;}
 
   </style>
+  <!-- web3 -->
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
   <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.36/dist/web3.min.js"></script>
+  
+  <!-- solc -->
+  <script src="http://code.dappbench.com/browser-solc.min.js" type="text/javascript"></script>
+  
+  <!-- crypto -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
+  
+  <!-- <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/aes.js"></script>
+  <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/pbkdf2.js"></script> -->
+  
   <script src="./javascripts/app.js"></script>
 </head>
 <body>
@@ -36,24 +46,132 @@
   <div class="section">
     <h2>Meeting</h2>
     Room: <input type="text" id="roomNumber" value="room111" />
-	  Note: <input type="text" id="roomNote" value="note" />
+      Note: <input type="text" id="roomNote" value="note" />
       <button id="addMeeting">add</button>
-	  <button id="delMeeting">del</button>
+      <button id="delMeeting">del</button>
       <span id="MeetingResult"></span>
   </div>
 
   <hr/>
- 
+
   <div class="section">
     <h2>Person</h2>
     Key: <input type="text" id="personKey" value="XXXX000000" /> 
-	  Name: <input type="text" id="personName" value="name" /> 
+      Name: <input type="text" id="personName" value="name" /> 
       <button id="checkPerson">check</button>
       <button id="addPerson">add</button>
-	  <button id="delPerson">del</button>
-	  <span id="checkPersonResult"></span>
+      <button id="delPerson">del</button>
+      <span id="checkPersonResult"></span>
       <span id="PersonResult"></span>
   </div>
+
+  <hr/>
+
+  <div class="section">
+    <h2>Smart contract</h2>
+    <button id="showSmartContract">Show</button>
+    <div id="smartContractCode">
+    <pre>pragma solidity ^0.4.9;
+
+contract Conference {
+
+    struct PersonStruct {
+        //bytes32 hkey;
+        string key;
+        bool exists;
+        string name;
+    }
+
+    struct MeetingStruct {
+        uint256  id;
+        bytes32 room;
+        string  note;
+        //mapping (bytes32 => PersonStruct) PersonsMap ;
+        mapping (string => PersonStruct) PersonsMap ;
+    }
+
+    //mapping (bytes[128] => bool) PersonsMap ;
+
+
+    //-----------------------
+    bytes32[] Meetings;
+    mapping (bytes32 => MeetingStruct) MeetingsMap ;
+
+    address  Owner ;
+
+    //only owner can execute the methods
+    modifier onlyOwner {
+        require(msg.sender == Owner, "Sender not authorized.");
+        _;
+    }
+
+    constructor() public {
+        Owner = msg.sender;
+    }
+
+    function GetMeetings() public constant returns (uint256, bytes32[])
+    {
+       return( Meetings.length, Meetings ) ;
+    }
+
+    function GetMeeting( bytes32 room_ ) public constant returns (uint256, bytes32, string) {
+        return( MeetingsMap[room_].id, MeetingsMap[room_].room, MeetingsMap[room_].note) ;
+    }
+
+    function AddMeeting( bytes32 room_, string note_ ) onlyOwner public returns (uint256) {
+        require(MeetingsMap[room_].id == 0, "Room already exists");
+        //if( MeetingsMap[room_].id > 0 ) throw;
+
+        Meetings.push(room_) ;
+        MeetingsMap[room_] = MeetingStruct({ id: Meetings.length, room: room_, note: note_ });
+
+        return( Meetings.length );
+    }
+
+    function DeleteMeeting( bytes32 room_ ) onlyOwner public returns (uint256) {
+        require(MeetingsMap[room_].id > 0, "Unknown room");
+
+        uint256 id = MeetingsMap[room_].id;
+        bytes32 room = Meetings[Meetings.length - 1];
+        Meetings[id] = room;
+        MeetingsMap[room_].id =  id;
+        Meetings.length--;
+
+        return (id);
+    }
+
+    //-------------------------------------------------------------------
+    function CheckPerson( bytes32 room_, string key_ ) public constant returns (bool) {
+        bool rs = false;
+        string memory v = "";
+
+        if( MeetingsMap[room_].id > 0 ) {
+            rs = MeetingsMap[room_].PersonsMap[key_].exists;
+        }
+
+        return( rs );
+    }
+
+    function AddPerson( bytes32 room_, string key_, string name_ ) public {
+
+        if( MeetingsMap[room_].id > 0 ) {
+            MeetingsMap[room_].PersonsMap[key_].key = key_;
+            MeetingsMap[room_].PersonsMap[key_].exists = true;
+            MeetingsMap[room_].PersonsMap[key_].name = name_;
+        }
+    }
+
+    function DeletePerson( bytes32 room_, string key_ ) public {
+        require(MeetingsMap[room_].id > 0, "Unknown person");
+
+        MeetingsMap[room_].PersonsMap[key_].key = "";
+        MeetingsMap[room_].PersonsMap[key_].exists = false;
+        MeetingsMap[room_].PersonsMap[key_].name = "";
+    }
+}
+    </pre>
+   </div>
+  </div>  
 
 </body>
 </html> 

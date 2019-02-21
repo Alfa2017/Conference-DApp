@@ -3,7 +3,9 @@ pragma solidity ^0.4.9;
 contract Conference {
 
     struct PersonStruct {
-        bytes32 hkey;
+        //bytes32 hkey;
+        string key;
+        bool exists;
         string name;
     }
 
@@ -11,16 +13,18 @@ contract Conference {
         uint256  id;
         bytes32 room;
         string  note;
-        mapping (bytes32 => PersonStruct) PersonsMap ;
+        //mapping (bytes32 => PersonStruct) PersonsMap ;
+        mapping (string => PersonStruct) PersonsMap ;
     }
 
+
+    //-----------------------
     bytes32[] Meetings;
     mapping (bytes32 => MeetingStruct) MeetingsMap ;
 
     address  Owner ;
-    //uint256  Count ;
 
-
+    //only owner can execute the methods
     modifier onlyOwner {
         require(msg.sender == Owner, "Sender not authorized.");
         _;
@@ -62,36 +66,31 @@ contract Conference {
     }
 
     //-------------------------------------------------------------------
-    function CheckPerson( bytes32 room_, bytes32 key_ ) public constant returns (bool) {
+    function CheckPerson( bytes32 room_, string key_ ) public constant returns (bool) {
         bool rs = false;
-        bytes32 k = sha256(key_);
+        string memory v = "";
 
         if( MeetingsMap[room_].id > 0 ) {
-            if( MeetingsMap[room_].PersonsMap[k].hkey > 0 ) {
-                rs = true;
-            }
+            rs = MeetingsMap[room_].PersonsMap[key_].exists;
         }
 
         return( rs );
     }
 
-    function AddPerson( bytes32 room_, bytes32 key_, string name_ ) public {
-
-        bytes32 k = sha256(key_);
+    function AddPerson( bytes32 room_, string key_, string name_ ) public {
 
         if( MeetingsMap[room_].id > 0 ) {
-            MeetingsMap[room_].PersonsMap[k].hkey = k;
-            MeetingsMap[room_].PersonsMap[k].name = name_;
+            MeetingsMap[room_].PersonsMap[key_].key = key_;
+            MeetingsMap[room_].PersonsMap[key_].exists = true;
+            MeetingsMap[room_].PersonsMap[key_].name = name_;
         }
     }
 
-    function DeletePerson( bytes32 room_, bytes32 key_ ) public {
+    function DeletePerson( bytes32 room_, string key_ ) public {
         require(MeetingsMap[room_].id > 0, "Unknown person");
-        //if( MeetingsMap[room_].id == 0 ) throw;
 
-        bytes32 k = sha256(key_);
-
-        MeetingsMap[room_].PersonsMap[k].hkey = 0;
-        MeetingsMap[room_].PersonsMap[k].name = "";
+        MeetingsMap[room_].PersonsMap[key_].key = "";
+        MeetingsMap[room_].PersonsMap[key_].exists = false;
+        MeetingsMap[room_].PersonsMap[key_].name = "";
     }
 }
